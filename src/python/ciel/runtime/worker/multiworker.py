@@ -378,6 +378,7 @@ class WorkerThreadPool:
         self.threads = []
         
     def thread_main(self):
+        time.sleep(1)
         while True:
             task = self.queue_manager.get_next_task(self.scheduling_class)
             if task is None:
