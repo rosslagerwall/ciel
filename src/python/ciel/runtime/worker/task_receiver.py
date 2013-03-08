@@ -64,6 +64,7 @@ class TaskReceiverThread:
          self.listen.listen(1)
          self.conn, self.addr = self.listen.accept()
          self.worker.conn = self.conn
+         self.worker.conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
          while True:
              #print "about to load task"
              num = self.recv_n(4)
