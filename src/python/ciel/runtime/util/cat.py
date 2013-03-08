@@ -18,7 +18,7 @@ from ciel.public.references import SWReferenceJSONEncoder,\
     json_decode_object_hook
 import sys
 import os
-import simplejson
+import json
 import httplib2
 from urlparse import urljoin
 from ciel.public.references import SWURLReference
@@ -38,12 +38,12 @@ def main():
             # Fetch information about the ref from the master.
             h = httplib2.Http()
             _, content = h.request(urljoin(options.master, '/refs/%s' % ref_id), 'GET')
-            ref_info = simplejson.loads(content, object_hook=json_decode_object_hook)
+            ref_info = json.loads(content, object_hook=json_decode_object_hook)
             ref = ref_info['ref']
             
             if options.json:
                 obj = retrieve_object_for_ref(ref, 'json', None)
-                simplejson.dump(obj, sys.stdout, cls=SWReferenceJSONEncoder, indent=4)
+                json.dump(obj, sys.stdout, cls=SWReferenceJSONEncoder, indent=4)
                 print
             else:
                 fh = retrieve_object_for_ref(ref, 'handle', None)
@@ -57,7 +57,7 @@ def main():
         for url in urls:
             if options.json:
                 obj = retrieve_object_for_ref(SWURLReference([url]), 'json', None)
-                simplejson.dump(obj, sys.stdout, cls=SWReferenceJSONEncoder, indent=4)
+                json.dump(obj, sys.stdout, cls=SWReferenceJSONEncoder, indent=4)
                 print
             else:
                 fh = retrieve_object_for_ref(SWURLReference([url]), 'handle', None)

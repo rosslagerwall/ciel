@@ -17,7 +17,7 @@ from ciel.runtime.util.load import get_worker_netlocs,\
 import httplib2
 import os
 import sys
-import simplejson
+import json
 from ciel.public.references import SWReferenceJSONEncoder, json_decode_object_hook
 import uuid
 
@@ -44,7 +44,7 @@ def main():
         for netloc in workers:
             response, content = h.request('http://%s/control/admin/pin/' % netloc, 'GET')
             assert response.status == 200
-            pin_set = simplejson.loads(content, object_hook=json_decode_object_hook)
+            pin_set = json.loads(content, object_hook=json_decode_object_hook)
             for ref in pin_set:
                 try:
                     existing_set = id_to_netloc[ref.id]
@@ -63,7 +63,7 @@ def main():
         for netloc in workers:
             response, content = h.request('http://%s/control/admin/pin/' % netloc, 'GET')
             assert response.status == 200
-            pin_set = simplejson.loads(content, object_hook=json_decode_object_hook)
+            pin_set = json.loads(content, object_hook=json_decode_object_hook)
             for ref in pin_set:
                 if ref.id.startswith(options.prefix) and not ref.id.endswith('index'):
                     try:
@@ -79,11 +79,11 @@ def main():
     
         index_name = '%s:recovered_index' % str(uuid.uuid4())
         with open(index_name, 'w') as f:
-            simplejson.dump(new_index, f, cls=SWReferenceJSONEncoder)
+            json.dump(new_index, f, cls=SWReferenceJSONEncoder)
         print 'Wrote index to %s' % index_name
     
         targets = select_targets(workers, options.replication)
-        upload_string_to_targets(simplejson.dumps(new_index, cls=SWReferenceJSONEncoder), index_name, targets)
+        upload_string_to_targets(json.dumps(new_index, cls=SWReferenceJSONEncoder), index_name, targets)
         for target in targets:
             print 'swbs://%s/%s' % (target, index_name)
         

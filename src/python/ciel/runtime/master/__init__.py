@@ -29,7 +29,7 @@ import cherrypy
 import ciel
 import logging
 import os
-import simplejson
+import json
 import socket
 import subprocess
 import tempfile

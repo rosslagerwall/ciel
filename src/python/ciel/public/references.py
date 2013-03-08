@@ -12,7 +12,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 
-import simplejson
+import json
 import base64
 import re
 
@@ -293,13 +293,13 @@ class SWDataValue(SWRealReference):
     def __repr__(self):
         return 'SWDataValue(%s, %s)' % (repr(self.id), repr(self.value))
     
-class SWReferenceJSONEncoder(simplejson.JSONEncoder):
+class SWReferenceJSONEncoder(json.JSONEncoder):
 
     def default(self, obj):
         if isinstance(obj, SWRealReference):
             return {'__ref__': obj.as_tuple()}
         else:
-            return simplejson.JSONEncoder.default(self, obj)
+            return json.JSONEncoder.default(self, obj)
 
 def json_decode_object_hook(dict_):
         if '__ref__' in dict_:

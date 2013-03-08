@@ -26,7 +26,7 @@ from ciel.public.references import json_decode_object_hook,\
 from ciel.runtime.remote_stat import receive_stream_advertisment
 from ciel.runtime.producer_stat import subscribe_output, unsubscribe_output
 import sys
-import simplejson
+import json
 import cherrypy
 import os
 
@@ -57,14 +57,14 @@ class ControlRoot:
     
     @cherrypy.expose
     def index(self):
-        return simplejson.dumps(self.worker.id)
+        return json.dumps(self.worker.id)
 
 class StreamStatRoot:
 
     @cherrypy.expose
     def default(self, id, op):
         if cherrypy.request.method == "POST":
-            payload = simplejson.loads(cherrypy.request.body.read())
+            payload = json.loads(cherrypy.request.body.read())
             if op == "subscribe":
                 subscribe_output(payload["netloc"], payload["chunk_size"], id)
             elif op == "unsubscribe":
@@ -94,10 +94,10 @@ class RegisterMasterRoot:
     @cherrypy.expose
     def index(self):
         if cherrypy.request.method == 'POST':
-            master_details = simplejson.loads(cherrypy.request.body.read())
+            master_details = json.loads(cherrypy.request.body.read())
             self.worker.set_master(master_details)
         elif cherrypy.request.method == 'GET':
-            return simplejson.dumps(self.worker.master_proxy.get_master_details())
+            return json.dumps(self.worker.master_proxy.get_master_details())
         else:
             raise cherrypy.HTTPError(405)
     
@@ -111,7 +111,7 @@ class TaskRoot:
         print "started old task"
         if cherrypy.request.method == 'POST':
             ciel.stopwatch.multi(starts=["worker_task"], laps=["end_to_end"])
-            task_descriptor = simplejson.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
+            task_descriptor = json.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
             if task_descriptor is not None:
                 self.worker.multiworker.create_and_queue_taskset(task_descriptor)
                 return
@@ -152,9 +152,9 @@ class LogRoot:
         if cherrypy.request.method == 'POST':
             try:
                 self.worker.await_log_entries_after(event_count)
-                return simplejson.dumps({})
+                return json.dumps({})
             except Exception as e:
-                return simplejson.dumps({"error": repr(e)})
+                return json.dumps({"error": repr(e)})
         else:
             raise cherrypy.HTTPError(405)
 
@@ -162,7 +162,7 @@ class LogRoot:
     def index(self, first_event, last_event):
         if cherrypy.request.method == 'GET':
             events = self.worker.get_log_entries(int(first_event), int(last_event))
-            return simplejson.dumps([{"time": repr(t), "event": e} for (t, e) in events])
+            return json.dumps([{"time": repr(t), "event": e} for (t, e) in events])
         else:
             raise cherrypy.HTTPError(405)
 
@@ -194,7 +194,7 @@ class DataRoot:
                 self.backup_sender.add_data(safe_id, request_body)
             #if self.task_pool is not None:
             #    self.task_pool.publish_refs({safe_id : new_ref})
-            return simplejson.dumps(new_ref, cls=SWReferenceJSONEncoder)
+            return json.dumps(new_ref, cls=SWReferenceJSONEncoder)
         
         elif cherrypy.request.method == 'HEAD':
             if os.path.exists(self.block_store.filename(id)):
@@ -215,7 +215,7 @@ class DataRoot:
                 self.backup_sender.add_data(id, request_body)
             #if self.task_pool is not None:
             #    self.task_pool.publish_refs({id : new_ref})
-            return simplejson.dumps(new_ref, cls=SWReferenceJSONEncoder)
+            return json.dumps(new_ref, cls=SWReferenceJSONEncoder)
         elif cherrypy.request.method == 'GET':
             return serve_file(self.block_store.generate_block_list_file())
         else:
@@ -234,10 +234,10 @@ class UploadRoot:
         if cherrypy.request.method != 'POST':
             raise cherrypy.HTTPError(405)
         if start is None:
-            #upload_descriptor = simplejson.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
+            #upload_descriptor = json.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
             self.upload_manager.start_upload(id)#, upload_descriptor)
         elif start == 'commit':
-            size = int(simplejson.load(cherrypy.request.body))
+            size = int(json.load(cherrypy.request.body))
             self.upload_manager.commit_upload(id, size)
         else:
             start_index = int(start)
@@ -252,7 +252,7 @@ class FetchRoot:
     def default(self, id=None):
         if cherrypy.request.method != 'POST':
             if id is None:
-                return simplejson.dumps(self.upload_manager.current_fetches)
+                return json.dumps(self.upload_manager.current_fetches)
             else:
                 status = self.upload_manager.get_status_for_fetch(id)
                 if status != 200:
@@ -260,7 +260,7 @@ class FetchRoot:
                 else:
                     return
                 
-        refs = simplejson.load(cherrypy.request.body, object_hook=json_decode_object_hook)
+        refs = json.load(cherrypy.request.body, object_hook=json_decode_object_hook)
         self.upload_manager.fetch_refs(id, refs)
         
         cherrypy.response.status = '202 Accepted'
@@ -275,15 +275,15 @@ class ProcessRoot:
         
         if cherrypy.request.method == 'POST' and id is None:
             # Create a new process record.
-            (pid, protocol) = simplejson.load(cherrypy.request.body)
+            (pid, protocol) = json.load(cherrypy.request.body)
             record = self.process_pool.create_process_record(pid, protocol)
             self.process_pool.create_job_for_process(record)
             
-            return simplejson.dumps(record.as_descriptor())
+            return json.dumps(record.as_descriptor())
             
         elif cherrypy.request.method == 'GET' and id is None:
             # Return a list of process IDs.
-            return simplejson.dumps(self.process_pool.get_process_ids())
+            return json.dumps(self.process_pool.get_process_ids())
         
         elif id is not None:
             # Return information about a running process (for debugging).
@@ -293,7 +293,7 @@ class ProcessRoot:
             elif cherrypy.request.method != 'GET':
                 raise cherrypy.HTTPError(405)
             else:
-                return simplejson.dumps(record.as_descriptor())
+                return json.dumps(record.as_descriptor())
         
         else:
             raise cherrypy.HTTPError(405)
@@ -315,7 +315,7 @@ class ManageRoot:
         elif action == 'pin' and id is not None:
             self.block_store.pin_ref_id(id)
         elif action == 'pin':
-            return simplejson.dumps(self.block_store.generate_pin_refs(), cls=SWReferenceJSONEncoder)
+            return json.dumps(self.block_store.generate_pin_refs(), cls=SWReferenceJSONEncoder)
     
 class FeaturesRoot:
     
@@ -324,7 +324,7 @@ class FeaturesRoot:
     
     @cherrypy.expose
     def index(self):
-        return simplejson.dumps(self.execution_features.all_features())
+        return json.dumps(self.execution_features.all_features())
 
 class StopwatchRoot:
     
@@ -333,13 +333,13 @@ class StopwatchRoot:
     
     @cherrypy.expose
     def index(self):
-        return simplejson.dumps(ciel.stopwatch.times.keys())
+        return json.dumps(ciel.stopwatch.times.keys())
     
     @cherrypy.expose
     def default(self, watch_name):
         try:
             times = ciel.stopwatch.get_times(watch_name)
-            return simplejson.dumps([float(x.seconds) + (float(x.microseconds) / 1000000.0) for x in times])
+            return json.dumps([float(x.seconds) + (float(x.microseconds) / 1000000.0) for x in times])
         except KeyError:
             if not ciel.stopwatch.enabled:
                 raise cherrypy.HTTPError(403, "Profiling not enabled")

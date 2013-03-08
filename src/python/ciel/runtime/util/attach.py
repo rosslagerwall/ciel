@@ -14,7 +14,7 @@
 import optparse
 import sys
 import httplib2
-import simplejson
+import json
 import urlparse
 import os
 
@@ -24,7 +24,7 @@ FORMATS = {'json' : True, 'env' : True, 'protobuf' : True, 'pickle' : True}
 def attach(worker_uri, pid, protocol='json'):
     
     h = httplib2.Http()
-    process_request = simplejson.dumps((pid, protocol))
+    process_request = json.dumps((pid, protocol))
     try:
         response, content = h.request(urlparse.urljoin(worker_uri, '/control/process/'), 'POST', process_request)
     except:
@@ -36,12 +36,12 @@ def attach(worker_uri, pid, protocol='json'):
         return None
 
     else:
-        return simplejson.loads(content)
+        return json.loads(content)
 
 def render(descriptor, format='json'):
 
     if format == 'json':
-        print simplejson.dumps(descriptor)
+        print json.dumps(descriptor)
     elif format == 'env':
         print 'export CIEL_PROCESS_ID=%s' % descriptor['id']
         print 'export CIEL_PROCESS_PROTOCOL=%s' % descriptor['protocol']

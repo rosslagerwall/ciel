@@ -20,7 +20,7 @@ import socket
 import cPickle
 from ciel.public.references import json_decode_object_hook,\
     SWReferenceJSONEncoder
-import simplejson
+import json
 import struct
 import select
 
@@ -73,7 +73,7 @@ class TaskReceiverThread:
              data = self.recv_n(num)
              if data is None:
                  break
-             task_descriptor = simplejson.loads(data, object_hook=json_decode_object_hook)
+             task_descriptor = json.loads(data, object_hook=json_decode_object_hook)
              #task_descriptor = cPickle.loads(data)
              #print "loaded task"
              self.worker.multiworker.create_and_queue_taskset(task_descriptor)

@@ -14,7 +14,7 @@
 import ciel
 import logging
 from ciel.public.references import SWReferenceJSONEncoder, SWDataValue
-import simplejson
+import json
 from ciel.runtime.executors.simple import SimpleExecutor
 from ciel.runtime.exceptions import BlameUserException
 from ciel.runtime.fetcher import get_ref_for_url
@@ -45,7 +45,7 @@ class GrabURLExecutor(SimpleExecutor):
         for i, url in enumerate(urls):
             ref = get_ref_for_url(url, version, self.task_id)
             self.task_record.publish_ref(ref)
-            out_str = simplejson.dumps(ref, cls=SWReferenceJSONEncoder)
+            out_str = json.dumps(ref, cls=SWReferenceJSONEncoder)
             cache_object(ref, "json", self.output_ids[i])
             self.output_refs[i] = SWDataValue(self.output_ids[i], out_str)
 

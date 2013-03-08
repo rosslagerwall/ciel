@@ -15,7 +15,7 @@
 from ciel.runtime.pycurl_rpc import post_string_noreturn
 from ciel.runtime.block_store import get_own_netloc
 
-import simplejson
+import json
 import threading
 
 import ciel
@@ -38,7 +38,7 @@ def subscribe_remote_output_nopost(refid, subscriber):
 
 def subscribe_remote_output(refid, remote_netloc, chunk_size, subscriber):
     subscribe_remote_output_nopost(refid, subscriber)
-    post_data = simplejson.dumps({"netloc": get_own_netloc(), "chunk_size": chunk_size})
+    post_data = json.dumps({"netloc": get_own_netloc(), "chunk_size": chunk_size})
     post_string_noreturn("http://%s/control/streamstat/%s/subscribe" % (remote_netloc, refid), post_data, result_callback=(lambda success, url: subscribe_result(refid, success, url)))
 
 def unsubscribe_remote_output_nopost(refid):
@@ -48,7 +48,7 @@ def unsubscribe_remote_output_nopost(refid):
 def unsubscribe_remote_output(refid):
     unsubscribe_remote_output_nopost(refid)
     netloc = get_own_netloc()
-    post_data = simplejson.dumps({"netloc": netloc})
+    post_data = json.dumps({"netloc": netloc})
     post_string_noreturn("http://%s/control/streamstat/%s/unsubscribe" 
                           % (netloc, refid), post_data)
 

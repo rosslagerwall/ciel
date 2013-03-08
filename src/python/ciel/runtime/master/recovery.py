@@ -19,7 +19,7 @@ from ciel.runtime.block_store import BLOCK_LIST_RECORD_STRUCT
 from ciel.public.references import json_decode_object_hook
 import logging
 import os
-import simplejson
+import json
 from ciel.runtime.master.job_pool import RECORD_HEADER_STRUCT,\
     Job, JOB_ACTIVE, JOB_RECOVERED
 from ciel.runtime.task import build_taskpool_task_from_descriptor
@@ -122,7 +122,7 @@ class RecoveryManager(plugins.SimplePlugin):
                 result_path = os.path.join(job_dir, 'result')
                 if os.path.exists(result_path):
                     with open(result_path, 'r') as result_file:
-                        result = simplejson.load(result_file, object_hook=json_decode_object_hook)
+                        result = json.load(result_file, object_hook=json_decode_object_hook)
                 else:
                     result = None
                     
@@ -132,7 +132,7 @@ class RecoveryManager(plugins.SimplePlugin):
                 root_task_descriptor_string = journal_file.read(root_task_descriptor_length)
                 assert record_type == 'T'
                 assert len(root_task_descriptor_string) == root_task_descriptor_length
-                root_task_descriptor = simplejson.loads(root_task_descriptor_string, object_hook=json_decode_object_hook)
+                root_task_descriptor = json.loads(root_task_descriptor_string, object_hook=json_decode_object_hook)
                 root_task = build_taskpool_task_from_descriptor(root_task_descriptor, None)
                 
                 # FIXME: Get the job pool to create this job, because it has access to the scheduler queue and task failure investigator.
@@ -181,7 +181,7 @@ class RecoveryManager(plugins.SimplePlugin):
                     ciel.log.error('Journal entry truncated for job %s' % job.id, 'RECOVERY', logging.WARNING, False)
                     # XXX: Need to truncate the journal file.
                     break
-                rec = simplejson.loads(record_string, object_hook=json_decode_object_hook)
+                rec = json.loads(record_string, object_hook=json_decode_object_hook)
                 if record_type == 'R':
                     job.task_graph.publish(rec['ref'])
                 elif record_type == 'T':

@@ -22,7 +22,7 @@ import ciel
 import datetime
 import logging
 import os
-import simplejson
+import json
 import struct
 import time
 import uuid
@@ -297,7 +297,7 @@ class Job:
                 
         if self.job_dir is not None:
             with open(os.path.join(self.job_dir, 'result'), 'w') as result_file:
-                simplejson.dump(self.result_ref, result_file, cls=SWReferenceJSONEncoder)
+                json.dump(self.result_ref, result_file, cls=SWReferenceJSONEncoder)
 
     def flush_journal(self):
         with self._lock:
@@ -313,7 +313,7 @@ class Job:
     def add_reference(self, id, ref, should_sync=False):
         # Called under self._lock (from _report_tasks()).
         if self.journal and self.task_journal_fp is not None:
-            ref_details = simplejson.dumps({'id': id, 'ref': ref}, cls=SWReferenceJSONEncoder)
+            ref_details = json.dumps({'id': id, 'ref': ref}, cls=SWReferenceJSONEncoder)
             self.task_journal_fp.write(RECORD_HEADER_STRUCT.pack('R', len(ref_details)))
             self.task_journal_fp.write(ref_details)
             self.maybe_sync(should_sync)
@@ -322,7 +322,7 @@ class Job:
         # Called under self._lock (from _report_tasks()).
         self.task_state_counts[task.state] = self.task_state_counts[task.state] + 1
         if self.journal and self.task_journal_fp is not None:
-            task_details = simplejson.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
+            task_details = json.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
             self.task_journal_fp.write(RECORD_HEADER_STRUCT.pack('T', len(task_details)))
             self.task_journal_fp.write(task_details)
             self.maybe_sync(should_sync)

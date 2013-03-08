@@ -48,7 +48,7 @@ class InitExecutor(BaseExecutor):
     def _run(self, task_private, task_descriptor, task_record):
         
         args_dict = task_private["start_args"]
-        # Some versions of simplejson make these ascii keys into unicode objects :(
+        # Some versions of json make these ascii keys into unicode objects :(
         args_dict = dict([(str(k), v) for (k, v) in args_dict.items()])
         initial_task_out_obj = spawn_task_helper(task_record,
                                                  task_private["start_handler"], 

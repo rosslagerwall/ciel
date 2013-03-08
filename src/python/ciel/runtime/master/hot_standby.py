@@ -14,7 +14,7 @@
 from urlparse import urljoin
 import httplib2
 import logging
-import simplejson
+import json
 
 from cherrypy.process import plugins
 from Queue import Queue, Empty
@@ -89,7 +89,7 @@ class MasterRecoveryMonitor(plugins.SimplePlugin):
         
     def register_as_backup(self):
         h = httplib2.Http()
-        h.request(urljoin(self.master_url, '/backup/'), 'POST', simplejson.dumps(self.my_url))
+        h.request(urljoin(self.master_url, '/backup/'), 'POST', json.dumps(self.my_url))
     
     def ping_master(self):
         h = httplib2.Http()
@@ -108,7 +108,7 @@ class MasterRecoveryMonitor(plugins.SimplePlugin):
             self.workers.add(worker)
     
     def notify_all_workers(self):
-        master_details = simplejson.dumps({'master' : self.my_url})
+        master_details = json.dumps({'master' : self.my_url})
         with self._lock:
             for netloc in self.workers:
                 h = httplib2.Http()

@@ -2,7 +2,7 @@
 from StringIO import StringIO
 import os
 import tempfile
-import simplejson
+import json
 import struct
 from ciel.public.references import json_decode_object_hook, SWReferenceJSONEncoder
 
@@ -48,7 +48,7 @@ class MaybeFile:
             self.fake_fp.close()
             
 def write_framed_json(obj, fp):
-    json_string = simplejson.dumps(obj, cls=SWReferenceJSONEncoder)
+    json_string = json.dumps(obj, cls=SWReferenceJSONEncoder)
     fp.write(struct.pack('!I', len(json_string)))
     fp.write(json_string)
     fp.flush()
@@ -56,5 +56,5 @@ def write_framed_json(obj, fp):
 def read_framed_json(fp):
     request_len, = struct.unpack_from('!I', fp.read(4))
     request_string = fp.read(request_len)
-    return simplejson.loads(request_string, object_hook=json_decode_object_hook)
+    return json.loads(request_string, object_hook=json_decode_object_hook)
 

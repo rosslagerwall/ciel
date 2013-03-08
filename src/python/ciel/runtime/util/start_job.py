@@ -1,5 +1,5 @@
 import sys
-import simplejson
+import json
 import load
 import urlparse
 import httplib2
@@ -46,7 +46,7 @@ def ref_of_string(val, master_uri):
     master_data_uri = urlparse.urljoin(master_uri, "control/data/")
     master_netloc = urlparse.urlparse(master_uri).netloc
     (_, content) = http.request(master_data_uri, "POST", val)
-    return simplejson.loads(content, object_hook=json_decode_object_hook)
+    return json.loads(content, object_hook=json_decode_object_hook)
     
 def ref_of_object(key, val, package_path, master_uri):
     if "__ref__" in val:
@@ -120,7 +120,7 @@ def task_descriptor_for_package_and_initial_task(package_dict, start_handler, st
 
     submit_package_dict = dict([(k, ref_of_object(k, v, package_path, master_uri)) for (k, v) in package_dict.items()])
     #for key, ref in submit_package_dict.items():
-    #    print >>sys.stderr, key, '-->', simplejson.dumps(ref, cls=SWReferenceJSONEncoder)
+    #    print >>sys.stderr, key, '-->', json.dumps(ref, cls=SWReferenceJSONEncoder)
     package_ref = ref_of_string(cPickle.dumps(submit_package_dict), master_uri)
 
     resolved_args = resolve_vars(start_args, {"__package__": lambda x: submit_package_dict[x["__package__"]]})
@@ -130,9 +130,9 @@ def task_descriptor_for_package_and_initial_task(package_dict, start_handler, st
 def submit_job_for_task(task_descriptor, master_uri, job_options={}):
     payload = {"root_task" : task_descriptor, "job_options" : job_options}
     master_task_submit_uri = urlparse.urljoin(master_uri, "control/job/")
-    (_, content) = http.request(master_task_submit_uri, "POST", simplejson.dumps(payload, cls=SWReferenceJSONEncoder))
+    (_, content) = http.request(master_task_submit_uri, "POST", json.dumps(payload, cls=SWReferenceJSONEncoder))
     try:
-        return simplejson.loads(content)
+        return json.loads(content)
     except ValueError:
         print >>sys.stderr, 'Error submitting job'
         print >>sys.stderr, content
@@ -145,14 +145,14 @@ def submit_job_with_package(package_dict, start_handler, start_args, job_options
 def await_job(jobid, master_uri, timeout=None):
     notify_url = urlparse.urljoin(master_uri, "control/job/%s/completion" % jobid)
     if timeout is not None:
-        payload = simplejson.dumps({'timeout' : timeout})
+        payload = json.dumps({'timeout' : timeout})
     else:
         payload = None
     completion_result = None
     for i in range(5):
         try:
             (_, content) = http.request(notify_url, "GET" if timeout is None else "POST", body=payload)
-            completion_result = simplejson.loads(content, object_hook=json_decode_object_hook)
+            completion_result = json.loads(content, object_hook=json_decode_object_hook)
             break
         except:
             print >>sys.stderr, "Decode failed; retrying fetch..."
@@ -172,7 +172,7 @@ def await_job(jobid, master_uri, timeout=None):
 def external_get_real_ref(ref, jobid, master_uri):
     fetch_url = urlparse.urljoin(master_uri, "control/ref/%s/%s" % (jobid, ref.id))
     _, content = httplib2.Http().request(fetch_url)
-    real_ref = simplejson.loads(content, object_hook=json_decode_object_hook)
+    real_ref = json.loads(content, object_hook=json_decode_object_hook)
     print >>sys.stderr, "Resolved", ref, "-->", real_ref
     return real_ref 
     
@@ -336,7 +336,7 @@ def main(my_args=sys.argv):
         sys.exit(-1)
     
     with open(args[-1], "r") as package_file:
-        job_dict = simplejson.load(package_file)
+        job_dict = json.load(package_file)
 
     package_dict = job_dict.get("package",{})
     start_dict = job_dict["start"]
@@ -389,7 +389,7 @@ def submit():
         sys.exit(-1)
     
     with open(args[0], "r") as package_file:
-        job_dict = simplejson.load(package_file)
+        job_dict = json.load(package_file)
 
     package_dict = job_dict.get("package",{})
     start_dict = job_dict["start"]
@@ -462,7 +462,7 @@ def result():
 
     if options.package is not None:
         with open(options.package) as f:
-            job_dict = simplejson.load(f)
+            job_dict = json.load(f)
             decode_template = job_dict.get("result", None)
     else:
         return reflist

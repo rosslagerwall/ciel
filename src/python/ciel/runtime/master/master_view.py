@@ -16,7 +16,7 @@ from cherrypy import HTTPError
 from ciel.public.references import json_decode_object_hook,\
     SWReferenceJSONEncoder
 import sys
-import simplejson
+import json
 import cherrypy
 from ciel.runtime.worker.worker_view import DataRoot, StopwatchRoot
 from ciel.runtime.master.cluster_view import WebBrowserRoot
@@ -54,7 +54,7 @@ class HostnameRoot:
     @cherrypy.expose
     def index(self):
         (name, _, _) = socket.gethostbyaddr(cherrypy.request.remote.ip)
-        return simplejson.dumps(name)
+        return json.dumps(name)
 
 class ShutdownRoot:
     
@@ -77,17 +77,17 @@ class WorkersRoot:
     def index(self):
         if cherrypy.request.method == 'POST':
             request_body = cherrypy.request.body.read()
-            worker_descriptor = simplejson.loads(request_body)
+            worker_descriptor = json.loads(request_body)
             if self.monitor is not None and not self.monitor.is_primary:
                 self.monitor.add_worker(worker_descriptor['netloc'])
                 self.backup_sender.add_worker(request_body)
             else:
                 worker_id = self.worker_pool.create_worker(worker_descriptor)
                 self.backup_sender.add_worker(request_body)
-                return simplejson.dumps(str(worker_id))
+                return json.dumps(str(worker_id))
         elif cherrypy.request.method == 'GET':
             workers = [x.as_descriptor() for x in self.worker_pool.get_all_workers()]
-            return simplejson.dumps(workers, indent=4)
+            return json.dumps(workers, indent=4)
         else:
             raise HTTPError(405)
 
@@ -95,7 +95,7 @@ class WorkersRoot:
     def versioned(self):
         if cherrypy.request.method == 'GET':
             (version, workers) = self.worker_pool.get_all_workers_with_version()
-            return simplejson.dumps({"version": version, "workers": workers})
+            return json.dumps({"version": version, "workers": workers})
         else:
             raise HTTPError(405)
 
@@ -103,16 +103,16 @@ class WorkersRoot:
     def await_event_count(self, version=0):
         if cherrypy.request.method == 'POST':
             try:
-                return simplejson.dumps({ "current_version" : repr(self.worker_pool.await_version_after(int(version))) })
+                return json.dumps({ "current_version" : repr(self.worker_pool.await_version_after(int(version))) })
             except Exception as t:
-                return simplejson.dumps({ "error": repr(t) })
+                return json.dumps({ "error": repr(t) })
                 
         else:
             raise HTTPError(405)
         
     @cherrypy.expose
     def random(self):
-        return simplejson.dumps('http://%s/' % (self.worker_pool.get_random_worker().netloc, ))
+        return json.dumps('http://%s/' % (self.worker_pool.get_random_worker().netloc, ))
         
     @cherrypy.expose
     def default(self, worker_id, action=None):
@@ -133,7 +133,7 @@ class WorkersRoot:
                 raise HTTPError(404)
         else:
             if action is None:
-                return simplejson.dumps(worker.as_descriptor())
+                return json.dumps(worker.as_descriptor())
 
 class JobRoot:
     
@@ -147,7 +147,7 @@ class JobRoot:
         if cherrypy.request.method == 'POST':
             # 1. Read task descriptor from request.
             request_body = cherrypy.request.body.read()
-            payload = simplejson.loads(request_body, 
+            payload = json.loads(request_body, 
                                                object_hook=json_decode_object_hook)
 
             task_descriptor = payload['root_task']
@@ -166,11 +166,11 @@ class JobRoot:
             self.job_pool.queue_job(job)
                         
             # 3. Return descriptor for newly-created job.
-            return simplejson.dumps(job.as_descriptor())
+            return json.dumps(job.as_descriptor())
             
         elif cherrypy.request.method == 'GET':
             # Return a list of all jobs in the system.
-            return simplejson.dumps(self.job_pool.get_all_job_ids())
+            return json.dumps(self.job_pool.get_all_job_ids())
         else:
             raise HTTPError(405)
 
@@ -183,7 +183,7 @@ class JobRoot:
             
             # 1. Read task descriptor from request.
             request_body = cherrypy.request.body.read()
-            task_descriptor = simplejson.loads(request_body, 
+            task_descriptor = json.loads(request_body, 
                                                object_hook=json_decode_object_hook)
 
             # 2. Add to job pool (synchronously).
@@ -202,7 +202,7 @@ class JobRoot:
             # 3. Return descriptor for newly-created job.
             
             ciel.log('Done handling job POST', 'JOB_POOL', logging.INFO)
-            return simplejson.dumps(job.as_descriptor())            
+            return json.dumps(job.as_descriptor())            
         
         try:
             job = self.job_pool.get_job_by_id(id)
@@ -211,18 +211,18 @@ class JobRoot:
         
         if attribute is None:
             # Return the job descriptor as JSON.
-            return simplejson.dumps(job.as_descriptor(), cls=SWReferenceJSONEncoder, indent=4)
+            return json.dumps(job.as_descriptor(), cls=SWReferenceJSONEncoder, indent=4)
         elif attribute == 'completion':
             # Block until the job is completed.
             try:
-                timeout = simplejson.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)['timeout']
+                timeout = json.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)['timeout']
             except:
                 timeout = None
             done = self.job_pool.wait_for_completion(job, timeout)            
             if timeout is None:
-                return simplejson.dumps(job.as_descriptor(), cls=SWReferenceJSONEncoder) 
+                return json.dumps(job.as_descriptor(), cls=SWReferenceJSONEncoder) 
             else:
-                return simplejson.dumps(done)
+                return json.dumps(done)
         elif attribute == 'resume':
             self.job_pool.queue_job(job)
         elif attribute == 'poke':
@@ -258,7 +258,7 @@ class MasterTaskRoot:
 
         if cherrypy.request.method == 'GET':
             if action is None:
-                return simplejson.dumps(task.as_descriptor(long=True), cls=SWReferenceJSONEncoder)
+                return json.dumps(task.as_descriptor(long=True), cls=SWReferenceJSONEncoder)
             else:
                 ciel.log('Invalid operation: cannot GET with an action', 'MASTER', logging.ERROR)
                 raise HTTPError(405)
@@ -270,20 +270,20 @@ class MasterTaskRoot:
 
         if action == 'report':
             # Multi-spawn-and-commit
-            report_payload = simplejson.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
+            report_payload = json.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
             worker = self.worker_pool.get_worker_by_id(report_payload['worker'])
             report = report_payload['report']
             job.report_tasks(report, task, worker)
             return
 
         elif action == 'failed':
-            failure_payload = simplejson.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
+            failure_payload = json.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
             job.investigate_task_failure(task, failure_payload)
-            return simplejson.dumps(True)
+            return json.dumps(True)
         
         elif action == 'publish':
             request_body = cherrypy.request.body.read()
-            refs = simplejson.loads(request_body, object_hook=json_decode_object_hook)
+            refs = json.loads(request_body, object_hook=json_decode_object_hook)
             
             tx = TaskGraphUpdate()
             for ref in refs:
@@ -297,7 +297,7 @@ class MasterTaskRoot:
         elif action == 'log':
             # Message body is a JSON list containing UNIX timestamp in seconds and a message string.
             request_body = cherrypy.request.body.read()
-            timestamp, message = simplejson.loads(request_body, object_hook=json_decode_object_hook)
+            timestamp, message = json.loads(request_body, object_hook=json_decode_object_hook)
             ciel.log("%s %f %s" % (task_id, timestamp, message), 'TASK_LOG', logging.INFO)
             
         elif action == 'abort':
@@ -322,7 +322,7 @@ class BackupMasterRoot:
     def index(self):
         if cherrypy.request.method == 'POST':
             # Register the  a new global ID, and add the POSTed URLs if any.
-            standby_url = simplejson.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
+            standby_url = json.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)
             self.backup_sender.register_standby_url(standby_url)
             return 'Registered a hot standby'
         
@@ -344,4 +344,4 @@ class RefRoot:
         except KeyError:
             raise HTTPError(404)
 
-        return simplejson.dumps(ref, cls=SWReferenceJSONEncoder)
+        return json.dumps(ref, cls=SWReferenceJSONEncoder)

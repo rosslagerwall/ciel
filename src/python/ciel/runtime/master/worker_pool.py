@@ -18,7 +18,7 @@ import ciel
 import datetime
 import logging
 import random
-import simplejson
+import json
 import threading
 import uuid
 from urlparse import urlparse
@@ -122,7 +122,7 @@ class RecvThread:
              except KeyError:
                  ciel.log('No such task: %s in job: %s' % (task_id, job_id), 'MASTER', logging.ERROR)
                  raise HTTPError(404)
-             report_payload = simplejson.loads(data, object_hook=json_decode_object_hook)
+             report_payload = json.loads(data, object_hook=json_decode_object_hook)
              report = report_payload['report']
              job.report_tasks(report, task, self.worker)
 
@@ -244,7 +244,7 @@ class WorkerPool:
             #print "sending yobits"
             #worker.conn.write("yobits")
             #print "task", task.as_descriptor()
-            message = simplejson.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
+            message = json.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
             #message = cPickle.dumps(task.as_descriptor())
             worker.conn.sendall(struct.pack("i", len(message)) + message)
             #print "about to dump task"
@@ -294,7 +294,7 @@ class WorkerPool:
         ciel.log.error('Investigating possible failure of worker %s (%s)' % (worker.id, worker.netloc), 'WORKER_POOL', logging.WARNING)
         try:
             content = get_string('http://%s/control/master/' % worker.netloc)
-            worker_fetch = simplejson.loads(content)
+            worker_fetch = json.loads(content)
             assert worker_fetch['id'] == worker.id
         except:
             self.worker_failed(worker)

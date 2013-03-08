@@ -14,7 +14,7 @@
 
 import ciel
 import logging
-import simplejson
+import json
 import threading
 import os
 
@@ -40,7 +40,7 @@ class RemoteOutputSubscriber:
     def set_chunk_size(self, chunk_size):
         self.chunk_size = chunk_size
         if self.current_size is not None:
-            self.post(simplejson.dumps({"bytes": self.current_size, "done": False}))
+            self.post(json.dumps({"bytes": self.current_size, "done": False}))
         self.file_output.chunk_size_changed(self)
 
     def unsubscribe(self):
@@ -52,15 +52,15 @@ class RemoteOutputSubscriber:
     def progress(self, bytes):
         self.current_size = bytes
         if self.last_notify is None or self.current_size - self.last_notify > self.chunk_size:
-            data = simplejson.dumps({"bytes": bytes, "done": False})
+            data = json.dumps({"bytes": bytes, "done": False})
             self.post(data)
             self.last_notify = self.current_size
 
     def result(self, success):
         if success:
-            self.post(simplejson.dumps({"bytes": self.current_size, "done": True}))
+            self.post(json.dumps({"bytes": self.current_size, "done": True}))
         else:
-            self.post(simplejson.dumps({"failed": True}))
+            self.post(json.dumps({"failed": True}))
 
 # Remote is subscribing to updates regarding an output. Be helpful and inform him of a completed file, too.
 def subscribe_output(otherend_netloc, chunk_size, id):
@@ -79,12 +79,12 @@ def subscribe_output(otherend_netloc, chunk_size, id):
             else:
                 try:
                     st = os.stat(filename(id))
-                    post = simplejson.dumps({"bytes": st.st_size, "done": True})
+                    post = json.dumps({"bytes": st.st_size, "done": True})
                 except OSError:
-                    post = simplejson.dumps({"absent": True})
+                    post = json.dumps({"absent": True})
         except Exception as e:
             ciel.log("Subscription to %s failed with exception %s; reporting absent" % (id, e), "BLOCKSTORE", logging.WARNING)
-            post = simplejson.dumps({"absent": True})
+            post = json.dumps({"absent": True})
     if post is not None:
         post_string_noreturn("http://%s/control/streamstat/%s/advert" % (otherend_netloc, id), post)
 

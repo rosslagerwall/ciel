@@ -15,7 +15,7 @@ from ciel.runtime.block_store import sw_to_external_url,\
     get_netloc_for_sw_url, get_id_for_sw_url
 import sys
 import httplib2
-import simplejson
+import json
 from ciel.public.references import SW2_ConcreteReference, json_decode_object_hook
 from optparse import OptionParser
 
@@ -42,7 +42,7 @@ def main():
         index_url = sw_to_external_url(options.index)
         
         _, content = h.request(index_url, 'GET')
-        index = simplejson.loads(content, object_hook=json_decode_object_hook)
+        index = json.loads(content, object_hook=json_decode_object_hook)
         
         for chunk in index:
             assert isinstance(chunk, SW2_ConcreteReference)

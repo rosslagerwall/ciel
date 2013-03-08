@@ -30,7 +30,7 @@ from ciel.runtime.object_cache import retrieve_object_for_ref, ref_from_object,\
     cache_object
 
 import hashlib
-import simplejson
+import json
 import logging
 import shutil
 import subprocess

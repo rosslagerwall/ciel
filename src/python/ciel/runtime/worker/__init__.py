@@ -29,7 +29,7 @@ import cherrypy
 import os
 import socket
 import urlparse
-import simplejson
+import json
 import subprocess
 import sys
 from threading import Lock, Condition

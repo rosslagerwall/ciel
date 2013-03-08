@@ -16,7 +16,7 @@ from Queue import Queue, Empty
 from ciel.public.references import json_decode_object_hook
 from urlparse import urljoin, urlparse
 import httplib2
-import simplejson
+import json
 import sys
 
 def sanitise_job_url(root_url):
@@ -39,7 +39,7 @@ def sanitise_job_url(root_url):
     if url_parts.path.startswith('/control/job/'):
         job_url = root_url
         _, content = h.request(job_url)
-        job_descriptor = simplejson.loads(content)
+        job_descriptor = json.loads(content)
         root_url = urljoin(root_url, '/control/task/%s/%s' % (job_descriptor['job_id'], job_descriptor['root_task']))
     elif not url_parts.path.startswith('/control/task/'):
         print >>sys.stderr, "Error: must specify task or job URL."
@@ -60,7 +60,7 @@ def task_descriptors_for_job(job_url, sanitise=True):
             break
         _, content = h.request(url)
         
-        descriptor = simplejson.loads(content, object_hook=json_decode_object_hook)
+        descriptor = json.loads(content, object_hook=json_decode_object_hook)
 
         for child in descriptor["children"]:
             q.put(urljoin(url, child))

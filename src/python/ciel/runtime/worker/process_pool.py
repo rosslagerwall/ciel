@@ -16,7 +16,7 @@ import os
 import uuid
 import ciel
 import logging
-import simplejson
+import json
 import shutil
 from datetime import datetime
 from ciel.public.references import SW2_FixedReference
@@ -203,13 +203,13 @@ class ProcessPool:
         master_task_submit_uri = urlparse.urljoin(self.worker.master_url, "control/job/")
         
         try:
-            message = simplejson.dumps(root_task_descriptor, cls=SWReferenceJSONEncoder)
+            message = json.dumps(root_task_descriptor, cls=SWReferenceJSONEncoder)
             content = post_string(master_task_submit_uri, message)
         except Exception, e:
             ciel.log('Network error submitting process job to master', 'PROCESSPOOL', logging.WARN)
             raise e
 
-        job_descriptor = simplejson.loads(content)
+        job_descriptor = json.loads(content)
         record.job_id = job_descriptor['job_id']
         ciel.log('Created job %s for process %s (PID=%d)' % (record.job_id, record.id, record.pid), 'PROCESSPOOL', logging.DEBUG)
         

@@ -31,7 +31,7 @@ from ciel.runtime.pycurl_rpc import post_string, post_string_noreturn, get_strin
 from threading import Event
 import struct
 
-import simplejson
+import json
 
 def get_worker_netloc():
     return '%s:%d' % (socket.getfqdn(), cherrypy.config.get('server.socket_port'))
@@ -115,37 +115,38 @@ class MasterProxy:
             raise MasterNotRespondingException()
 
     def register_as_worker(self):
-        message_payload = simplejson.dumps(self.worker.as_descriptor())
+        message_payload = json.dumps(self.worker.as_descriptor())
         message_url = urljoin(self.master_url, 'control/worker/')
         _, result = self.backoff_request(message_url, 'POST', message_payload)
-        self.worker.id = simplejson.loads(result)
+        self.worker.id = json.loads(result)
     
     def publish_refs(self, job_id, task_id, refs):
-        message_payload = simplejson.dumps(refs, cls=SWReferenceJSONEncoder)
+        message_payload = json.dumps(refs, cls=SWReferenceJSONEncoder)
         message_url = urljoin(self.master_url, 'control/task/%s/%s/publish' % (job_id, task_id))
         self.backoff_request(message_url, "POST", message_payload, need_result=False)
 
     def log(self, job_id, task_id, timestamp, message):
-        message_payload = simplejson.dumps([timestamp, message], cls=SWReferenceJSONEncoder)
+        message_payload = json.dumps([timestamp, message], cls=SWReferenceJSONEncoder)
         message_url = urljoin(self.master_url, 'control/task/%s/%s/log' % (job_id, task_id))
         self.backoff_request(message_url, "POST", message_payload, need_result=False)
 
     def report_tasks(self, job_id, root_task_id, report):
         #print "report"
-        message_payload = job_id + '!' + root_task_id + '@' + simplejson.dumps({'worker' : self.worker.id, 'report' : report}, cls=SWReferenceJSONEncoder)
-        self.worker.conn.sendall(struct.pack('i', len(message_payload)) + message_payload)
+        message_payload = job_id + '!' + root_task_id + '@' + json.dumps({'worker' : self.worker.id, 'report' : report}, cls=SWReferenceJSONEncoder)
+        #print repr(struct.pack('i', len(message_payload)) + message_payload.encode("utf-8"))
+        self.worker.conn.sendall(struct.pack('i', len(message_payload)) + message_payload.encode("utf-8"))
         #message_url = urljoin(self.master_url, 'control/task/%s/%s/report' % (job_id, root_task_id))
         #self.backoff_request(message_url, "POST", message_payload, need_result=False)
 
     def failed_task(self, job_id, task_id, reason=None, details=None, bindings={}):
-        message_payload = simplejson.dumps((reason, details, bindings), cls=SWReferenceJSONEncoder)
+        message_payload = json.dumps((reason, details, bindings), cls=SWReferenceJSONEncoder)
         message_url = urljoin(self.master_url, 'control/task/%s/%s/failed' % (job_id, task_id))
         self.backoff_request(message_url, "POST", message_payload, need_result=False)
 
     def get_public_hostname(self):
         message_url = urljoin(self.master_url, "control/gethostname/")
         _, result = self.backoff_request(message_url, "GET")
-        return simplejson.loads(result)
+        return json.loads(result)
 
     def ping(self, ping_fail_callback):
         message_url = urljoin(self.master_url, 'control/worker/%s/ping/' % (str(self.worker.id), ))
