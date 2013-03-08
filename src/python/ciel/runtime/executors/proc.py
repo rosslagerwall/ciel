@@ -17,7 +17,7 @@ import ciel
 import os
 from ciel.public.references import SW2_ConcreteReference, SW2_SweetheartReference,\
     SW2_FixedReference, SW2_FutureReference, SWErrorReference
-import pickle
+import cPickle
 from ciel.runtime.executors.base import BaseExecutor
 from ciel.runtime.producer import write_fixed_ref_string, ref_from_string,\
     ref_from_safe_string
@@ -85,9 +85,9 @@ class ProcExecutor(BaseExecutor):
         task_private_id = ("%s:_private" % task_descriptor["task_id"])
         if is_fixed:
             task_private_ref = SW2_FixedReference(task_private_id, get_own_netloc())
-            write_fixed_ref_string(pickle.dumps(task_descriptor["task_private"]), task_private_ref)
+            write_fixed_ref_string(cPickle.dumps(task_descriptor["task_private"]), task_private_ref)
         else:
-            task_private_ref = ref_from_string(pickle.dumps(task_descriptor["task_private"]), task_private_id)
+            task_private_ref = ref_from_string(cPickle.dumps(task_descriptor["task_private"]), task_private_id)
         parent_task_record.publish_ref(task_private_ref)
         
         task_descriptor["task_private"] = task_private_ref
