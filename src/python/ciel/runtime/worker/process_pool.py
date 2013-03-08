@@ -22,7 +22,7 @@ from datetime import datetime
 from ciel.public.references import SW2_FixedReference
 import urlparse
 from ciel.public.references import SWReferenceJSONEncoder
-import pickle
+import cPickle
 import threading
 from ciel.runtime.pycurl_rpc import post_string
 from ciel.runtime.block_store import is_ref_local
@@ -191,7 +191,7 @@ class ProcessPool:
     def get_reference_for_process(self, record):
         ref = SW2_FixedReference(record.id, self.worker.block_store.netloc)
         if not is_ref_local(ref):
-            write_fixed_ref_string(pickle.dumps(record.as_descriptor()), ref)
+            write_fixed_ref_string(cPickle.dumps(record.as_descriptor()), ref)
         return ref
         
     def create_job_for_process(self, record):

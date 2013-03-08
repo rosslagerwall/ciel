@@ -12,7 +12,7 @@
 # ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 from ciel.runtime.executors.base import BaseExecutor
-import pickle
+import cPickle
 from ciel.runtime.exceptions import BlameUserException
 from ciel.runtime.executors import spawn_task_helper
 from ciel.public.references import SWRealReference
@@ -24,7 +24,7 @@ def build_init_descriptor(handler, args, package_ref, master_uri, ref_of_string)
                          "start_handler": handler, 
                          "start_args": args
                          } 
-    task_private_ref = ref_of_string(pickle.dumps(task_private_dict), master_uri)
+    task_private_ref = ref_of_string(cPickle.dumps(task_private_dict), master_uri)
     return {"handler": "init", 
             "dependencies": [package_ref, task_private_ref], 
             "task_private": task_private_ref

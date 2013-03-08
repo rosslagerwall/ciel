@@ -37,7 +37,7 @@ import subprocess
 import tempfile
 import os.path
 import threading
-import pickle
+import cPickle
 import time
 import socket
 import struct

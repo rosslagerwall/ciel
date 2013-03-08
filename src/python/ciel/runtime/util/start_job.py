@@ -3,7 +3,7 @@ import simplejson
 import load
 import urlparse
 import httplib2
-import pickle
+import cPickle
 import time
 import datetime
 import os.path
@@ -121,7 +121,7 @@ def task_descriptor_for_package_and_initial_task(package_dict, start_handler, st
     submit_package_dict = dict([(k, ref_of_object(k, v, package_path, master_uri)) for (k, v) in package_dict.items()])
     #for key, ref in submit_package_dict.items():
     #    print >>sys.stderr, key, '-->', simplejson.dumps(ref, cls=SWReferenceJSONEncoder)
-    package_ref = ref_of_string(pickle.dumps(submit_package_dict), master_uri)
+    package_ref = ref_of_string(cPickle.dumps(submit_package_dict), master_uri)
 
     resolved_args = resolve_vars(start_args, {"__package__": lambda x: submit_package_dict[x["__package__"]]})
 
@@ -287,7 +287,7 @@ def jar(my_args=sys.argv):
         with open(filename, 'r') as infile:
             package_dict[id] = ref_of_string(infile.read(), master_uri)
 
-    package_ref = ref_of_string(pickle.dumps(package_dict), master_uri)
+    package_ref = ref_of_string(cPickle.dumps(package_dict), master_uri)
 
     args = {'jar_lib' : jar_refs,
             'class_name' : class_name,

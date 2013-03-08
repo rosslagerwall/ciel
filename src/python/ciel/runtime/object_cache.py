@@ -1,5 +1,5 @@
 
-import pickle
+import cPickle
 import simplejson
 from cStringIO import StringIO
 from ciel.public.references import SWReferenceJSONEncoder, json_decode_object_hook,\
@@ -18,9 +18,9 @@ def encode_json(obj, file):
 def decode_json(file):
     return simplejson.load(file, object_hook=json_decode_object_hook)
 def encode_pickle(obj, file):
-    return pickle.dump(obj, file)
+    return cPickle.dump(obj, file)
 def decode_pickle(file):
-    return pickle.load(file)
+    return cPickle.load(file)
 
 encoders = {'noop': encode_noop, 'json': encode_json, 'pickle': encode_pickle}
 decoders = {'noop': decode_noop, 'json': decode_json, 'pickle': decode_pickle, 'handle': decode_handle}
