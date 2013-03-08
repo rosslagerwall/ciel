@@ -20,6 +20,8 @@ from ciel.runtime.block_store import BlockStore
 from ciel.runtime.worker.worker_view import WorkerRoot
 from ciel.runtime.worker.pinger import Pinger
 from ciel.runtime.file_watcher import create_watcher_thread
+from ciel.runtime.worker.task_receiver import TaskReceiverThread,\
+        create_task_recv_thread
 from cherrypy.process import plugins
 import logging
 import tempfile
@@ -52,6 +54,8 @@ class Worker(plugins.SimplePlugin):
     
     def __init__(self, bus, port, options):
         plugins.SimplePlugin.__init__(self, bus)
+
+        create_task_recv_thread(bus, self)
 
         create_pycurl_thread(bus)
         if options.aux_port is not None:

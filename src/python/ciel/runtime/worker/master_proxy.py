@@ -29,6 +29,7 @@ import socket
 import httplib2
 from ciel.runtime.pycurl_rpc import post_string, post_string_noreturn, get_string
 from threading import Event
+import struct
 
 import simplejson
 
@@ -130,9 +131,11 @@ class MasterProxy:
         self.backoff_request(message_url, "POST", message_payload, need_result=False)
 
     def report_tasks(self, job_id, root_task_id, report):
-        message_payload = simplejson.dumps({'worker' : self.worker.id, 'report' : report}, cls=SWReferenceJSONEncoder)
-        message_url = urljoin(self.master_url, 'control/task/%s/%s/report' % (job_id, root_task_id))
-        self.backoff_request(message_url, "POST", message_payload, need_result=False)
+        #print "report"
+        message_payload = job_id + '!' + root_task_id + '@' + simplejson.dumps({'worker' : self.worker.id, 'report' : report}, cls=SWReferenceJSONEncoder)
+        self.worker.conn.sendall(struct.pack('i', len(message_payload)) + message_payload)
+        #message_url = urljoin(self.master_url, 'control/task/%s/%s/report' % (job_id, root_task_id))
+        #self.backoff_request(message_url, "POST", message_payload, need_result=False)
 
     def failed_task(self, job_id, task_id, reason=None, details=None, bindings={}):
         message_payload = simplejson.dumps((reason, details, bindings), cls=SWReferenceJSONEncoder)

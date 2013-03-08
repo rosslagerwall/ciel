@@ -108,6 +108,7 @@ class TaskRoot:
         
     @cherrypy.expose
     def index(self):
+        print "started old task"
         if cherrypy.request.method == 'POST':
             ciel.stopwatch.multi(starts=["worker_task"], laps=["end_to_end"])
             task_descriptor = simplejson.loads(cherrypy.request.body.read(), object_hook=json_decode_object_hook)

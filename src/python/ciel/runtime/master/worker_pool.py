@@ -13,7 +13,6 @@
 # OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 from __future__ import with_statement
 from Queue import Queue
-from ciel.public.references import SWReferenceJSONEncoder
 from ciel.runtime.pycurl_rpc import post_string_noreturn, get_string
 import ciel
 import datetime
@@ -23,6 +22,11 @@ import simplejson
 import threading
 import uuid
 from urlparse import urlparse
+import socket
+import cPickle
+import struct
+from ciel.public.references import json_decode_object_hook,\
+    SWReferenceJSONEncoder
 
 class FeatureQueues:
     def __init__(self):
@@ -81,6 +85,48 @@ class Worker:
                 'last_ping': self.last_ping.ctime(),
                 'failed':  self.failed}
         
+class RecvThread:
+    def __init__(self, worker, job_pool):
+        self.thread = threading.Thread(target=self.main_loop)
+        self.job_pool = job_pool
+        self.worker = worker
+        self.data = ''
+
+    def start(self):
+        self.thread.start()
+
+    def recv_n(self, n):
+        while len(self.data) < n:
+            bit = self.worker.conn.recv(4096)
+            #print "recvd", bit, len(bit)
+            self.data += bit
+        data = self.data[:n]
+        self.data = self.data[n:]
+        return data
+
+    def main_loop(self):
+         while True:
+             num = self.recv_n(4)
+             num = struct.unpack("i", num)[0]
+             data = self.recv_n(num)
+             job_id = data[:data.find('!')]
+             task_id = data[data.find('!')+1:data.find('@')]
+             data = data[data.find('@')+1:]
+             try:
+                 job = self.job_pool.get_job_by_id(job_id)
+             except KeyError:
+                 ciel.log('No such job: %s' % job_id, 'MASTER', logging.ERROR)
+                 raise HTTPError(404)
+             try:
+                 task = job.task_graph.get_task(task_id)
+             except KeyError:
+                 ciel.log('No such task: %s in job: %s' % (task_id, job_id), 'MASTER', logging.ERROR)
+                 raise HTTPError(404)
+             report_payload = simplejson.loads(data, object_hook=json_decode_object_hook)
+             report = report_payload['report']
+             job.report_tasks(report, task, self.worker)
+
+        
 class WorkerPool:
     
     def __init__(self, bus, deferred_worker, job_pool):
@@ -135,6 +181,10 @@ class WorkerPool:
             except KeyError:
                 pass
             self.netlocs[worker.netloc] = worker
+            #print "worker ", worker.netloc
+            worker.conn = socket.create_connection((worker.netloc.split(":")[0], 8139))
+            worker.conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            RecvThread(worker, self.job_pool).start()
             self.idle_set.add(id)
             self.event_count += 1
             self.event_condvar.notify_all()
@@ -191,8 +241,17 @@ class WorkerPool:
         try:
             ciel.stopwatch.stop("master_task")
             
+            #print "sending yobits"
+            #worker.conn.write("yobits")
+            #print "task", task.as_descriptor()
             message = simplejson.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
-            post_string_noreturn("http://%s/control/task/" % (worker.netloc), message, result_callback=self.worker_post_result_callback)
+            #message = cPickle.dumps(task.as_descriptor())
+            worker.conn.sendall(struct.pack("i", len(message)) + message)
+            #print "about to dump task"
+            #cPickle.dump(task.as_descriptor(), worker.conn)
+            #worker.conn.flush()
+            #print "dumped task"
+            #post_string_noreturn("http://%s/control/task/" % (worker.netloc), message, result_callback=self.worker_post_result_callback)
         except:
             self.worker_failed(worker)
 
