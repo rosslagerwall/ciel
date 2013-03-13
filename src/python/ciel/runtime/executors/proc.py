@@ -160,6 +160,16 @@ class ProcExecutor(BaseExecutor):
         
         #ciel.log('Got reader and writer FIFOs', 'PROC', logging.INFO)
 
+        # Prefetch refs
+        if 'jar_lib' in task_private:
+            task_private['jar_lib_files'] = []
+            for ref in task_private['jar_lib']:
+                res = self.open_ref(ref)
+                task_private['jar_lib_files'].append(res['filename'])
+        if 'object_ref' in task_private:
+            res = self.open_ref(task_private['object_ref'])
+            task_private['object_ref'] = res['filename']
+
         write_framed_json(("start_task", task_private), writer)
 
         try:
