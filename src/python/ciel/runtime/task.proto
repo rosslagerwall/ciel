@@ -1,0 +1,83 @@
+package ciel;
+
+message SW2_ConcreteReference {
+    required string id = 1;
+    required float size_hint = 2;
+    repeated string location_hints = 3;
+}
+
+message SW2_FixedReference {
+    required string id = 1;
+    required string fixed_netloc = 2;
+}
+
+message SW2_FutureReference {
+    required string id = 1;
+}
+
+message SWDataValue {
+    required string id = 1;
+    required string value = 2;
+}
+
+message Reference {
+    optional SWDataValue dv = 1;
+    optional SW2_ConcreteReference cr = 2;
+    optional SW2_FutureReference fr = 3;
+    optional SW2_FixedReference fx = 4;
+}
+
+message Task {
+    required string task_id = 1;
+    required string handler = 2;
+    required int32 event_index = 3;
+    optional string parent = 4;
+    optional string scheduling_class = 5;
+    required string job = 6;
+    optional string type = 7;
+    repeated string expected_outputs = 8;
+    optional Reference task_private = 9;
+    repeated Reference inputs = 10;
+    repeated Reference dependencies = 11;
+}
+
+message WorkerPrivate {
+    required string hint = 1;
+}
+
+message TaskDict {
+    required string task_id = 1;
+    required string handler = 2;
+    repeated string expected_outputs = 8;
+    optional Reference task_private = 9;
+    repeated Reference inputs = 10;
+    repeated Reference dependencies = 11;
+    optional WorkerPrivate worker_private = 12;
+}
+
+message Location {
+    required string hostname = 1;
+    required float duration = 2;
+}
+
+message Profiling {
+    required float started = 1;
+    required float finished = 2;
+    required float created = 3;
+    repeated Location fetched = 4;
+}
+
+message TaskRecord {
+    required string task_id = 1;
+    required bool success = 2;
+    repeated TaskDict spawned_tasks = 3;
+    repeated Reference published_refs = 4;
+    optional Profiling profiling = 5;
+}
+
+message Report {
+    required string job_id = 1;
+    required string task_id = 2;
+    required string worker_id = 3;
+    repeated TaskRecord tr = 4;
+}

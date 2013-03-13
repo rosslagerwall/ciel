@@ -53,13 +53,22 @@ class TaskExecutorPlugin(AsynchronousExecutePlugin):
         with self._lock:
             self.current_task_set = new_task_set
         new_task_set.run()
-        report_data = []
+        report_data = task_pb2.Report()
+        report_data.job = input['job']
+        report_data.task_id = input['task_id']
         for tr in new_task_set.task_records:
+            tr_pb = task_pb2.TaskRecord()
             if tr.success:
-                report_data.append((tr.task_descriptor["task_id"], tr.success, (tr.spawned_tasks, tr.published_refs)))
+                tr_pb.task_id = tr.task_descriptor["task_id"]
+                tr_pb.success = True
+                for t in tr.spawned_tasks:
+                    t.fill_protobuf(tr_pb.spawned_tasks.add())
+                for r in tr.published_refs:
+                    r.fill_protobuf(tr_pb.published_refs.add())
             else:
-                report_data.append((tr.task_descriptor["task_id"], tr.success, (tr.failure_reason, tr.failure_details, tr.failure_bindings)))
-        self.master_proxy.report_tasks(input['job'], input['task_id'], report_data)
+                print "unimplemented"
+                exit(1)
+        self.master_proxy.report_tasks(report_data)
         with self._lock:
             self.current_task_set = None
 

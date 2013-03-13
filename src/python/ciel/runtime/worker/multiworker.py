@@ -22,6 +22,7 @@ import random
 import threading
 import math
 import time
+from ciel.runtime import task_pb2
 
 EWMA_ALPHA = 0.75
 INITIAL_TASK_COST = 0.5
@@ -155,6 +156,20 @@ class MultiWorker:
             if taskset.job.active_or_queued_tasksets == 0:
                 del self.jobs[taskset.job.id]
 
+def taskdict_fill_protobuf(task, pb):
+    pb.task_id = task['task_id']
+    pb.handler = task['handler']
+    if 'task_private' in task:
+        task['task_private'].fill_protobuf(pb.task_private)
+    pb.expected_outputs.extend(task['expected_outputs'])
+    #for i in task['inputs'].values():
+    #    i.fill_protobuf(pb.inputs.add())
+    for d in task['dependencies']:
+        d.fill_protobuf(pb.dependencies.add())
+    if 'worker_private' in task:
+        worker_private = pb.worker_private
+        worker_private.hint = task['worker_private']['hint']
+
 class MultiWorkerTaskSetExecutionRecord:
 
     def __init__(self, root_task_descriptor, block_store, master_proxy, execution_features, worker, job, job_manager):
@@ -221,15 +236,31 @@ class MultiWorkerTaskSetExecutionRecord:
         
         if not self.aborted:
             # Send a task report back to the master.
-            report_data = []
+            report_data = task_pb2.Report()
+            report_data.job_id = self.job.id
+            report_data.task_id = self.initial_td['task_id']
             for tr in self.task_records:
+                tr_pb = report_data.tr.add()
                 if tr.success:
-                    report_data.append((tr.task_descriptor['task_id'], tr.success, (tr.spawned_tasks, tr.published_refs, tr.get_profiling())))
+                    tr_pb.task_id = tr.task_descriptor["task_id"]
+                    tr_pb.success = True
+                    for t in tr.spawned_tasks:
+                        taskdict_fill_protobuf(t, tr_pb.spawned_tasks.add())
+                    for r in tr.published_refs:
+                        r.fill_protobuf(tr_pb.published_refs.add())
+                    profiling = tr.get_profiling()
+                    tr_pb.profiling.started = profiling['STARTED']
+                    tr_pb.profiling.finished = profiling['FINISHED']
+                    tr_pb.profiling.created = profiling['CREATED']
+                    for location in profiling['FETCHED']:
+                        l = tr_pb.profiling.fetched.add()
+                        l.hostname = location
+                        l.duration = profiling['FETCHED'][location]
                 else:
-                    ciel.log('Appending failure to report for task %s' % tr.task_descriptor['task_id'], 'TASKEXEC', logging.DEBUG)
-                    report_data.append((tr.task_descriptor['task_id'], tr.success, (tr.failure_reason, tr.failure_details, tr.failure_bindings)))
+                    print "unimple"
+                    exit(1)
             ciel.stopwatch.stop("worker_task")
-            self.master_proxy.report_tasks(self.job.id, self.initial_td['task_id'], report_data)
+            self.master_proxy.report_tasks(report_data)
 
     def build_task_record(self, task_descriptor):
         """Creates a new TaskExecutionRecord for the given task, and adds it to the journal for this task set."""

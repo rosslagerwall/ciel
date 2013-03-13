@@ -14,6 +14,7 @@
 from ciel.public.references import SW2_StreamReference, SW2_FixedReference
 import datetime
 import time
+import task_pb2
 
 TASK_CREATED = -1
 TASK_BLOCKING = 0
@@ -249,6 +250,25 @@ class TaskPoolTask:
             descriptor['scheduling_type'] = self.type
         
         return descriptor
+
+    def fill_protobuf(self, pb):
+        pb.task_id = self.task_id
+        pb.handler = self.handler
+        pb.event_index = self.event_index
+        pb.job = self.job.id
+        if self.task_private is not None:
+            self.task_private.fill_protobuf(pb.task_private)
+        if self.parent is not None:
+            pb.parent = self.parent.task_id
+        if self.scheduling_class is not None:
+            pb.scheduling_class = self.scheduling_class
+        if self.type is not None:
+            pb.type = self.type
+        pb.expected_outputs.extend(self.expected_outputs)
+        for i in self.inputs.values():
+            i.fill_protobuf(pb.inputs.add())
+        for d in self.dependencies.values():
+            d.fill_protobuf(pb.dependencies.add())
 
 class DummyJob:
     """Used to ensure that tasks on the worker can refer to their job (for inheriting job ID, e.g.)."""

@@ -68,6 +68,10 @@ class SW2_FutureReference(SWRealReference):
 
     def __repr__(self):
         return 'SW2_FutureReference(%s)' % (repr(self.id), )
+
+    def fill_protobuf(self, pb):
+        fr = pb.fr
+        fr.id = self.id
         
 class SW2_ConcreteReference(SWRealReference):
         
@@ -103,6 +107,12 @@ class SW2_ConcreteReference(SWRealReference):
         
     def __repr__(self):
         return 'SW2_ConcreteReference(%s, %s, %s)' % (repr(self.id), repr(self.size_hint), repr(self.location_hints))
+
+    def fill_protobuf(self, pb):
+        cr = pb.cr
+        cr.id = self.id
+        cr.size_hint = self.size_hint
+        cr.location_hints.extend(self.location_hints)
 
 class SW2_SweetheartReference(SW2_ConcreteReference):
 
@@ -144,6 +154,11 @@ class SW2_FixedReference(SWRealReference):
         
     def __repr__(self):
         return 'SW2_FixedReference(%s, %s)' % (repr(self.id), repr(self.fixed_netloc))
+
+    def fill_protobuf(self, pb):
+        fx = pb.fx
+        fx.id = self.id
+        fx.fixed_netloc = self.fixed_netloc
         
 class SW2_StreamReference(SWRealReference):
     
@@ -280,6 +295,11 @@ class SWDataValue(SWRealReference):
         
     def as_tuple(self):
         return ('val', self.id, self.value)
+
+    def fill_protobuf(self, pb):
+        dv = pb.dv
+        dv.id = self.id
+        dv.value = self.value
     
     def __str__(self):
         string_repr = ""
@@ -380,3 +400,16 @@ def combine_references(original, update):
     # If we reach this point, we should ignore the update.
     return original
 
+def reference_from_pb(pb):
+    if pb.HasField('fr'):
+        fr = pb.fr
+        return SW2_FutureReference(fr.id)
+    if pb.HasField('cr'):
+        cr = pb.cr
+        return SW2_ConcreteReference(cr.id, cr.size_hint, cr.location_hints)
+    if pb.HasField('fx'):
+        fx = pb.fx
+        return SW2_FixedReference(fx.id, fx.fixed_netloc)
+    if pb.HasField('dv'):
+        dv = pb.dv
+        return SWDataValue(dv.id, dv.value)

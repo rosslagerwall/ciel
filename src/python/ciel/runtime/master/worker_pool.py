@@ -26,7 +26,8 @@ import socket
 import cPickle
 import struct
 from ciel.public.references import json_decode_object_hook,\
-    SWReferenceJSONEncoder
+    SWReferenceJSONEncoder, reference_from_pb
+from ciel.runtime import task_pb2
 
 class FeatureQueues:
     def __init__(self):
@@ -84,7 +85,40 @@ class Worker:
                 'features': self.features,
                 'last_ping': self.last_ping.ctime(),
                 'failed':  self.failed}
-        
+
+def taskdict_from_pb(pb):
+    descriptor = {'task_id': pb.task_id,
+                  'handler': pb.handler}
+    if pb.HasField('task_private'):
+        descriptor['task_private'] = reference_from_pb(pb.task_private)
+    if pb.HasField('worker_private'):
+        descriptor['worker_private'] = {'hint' : pb.worker_private.hint}
+    descriptor['expected_outputs'] = []
+    descriptor['expected_outputs'].extend(pb.expected_outputs)
+    descriptor['inputs'] = []
+    descriptor['dependencies'] = []
+    for d in pb.dependencies:
+        descriptor['dependencies'].append(reference_from_pb(d))
+    return descriptor
+
+def report_from_pb(pb):
+    report_data = []
+    for tr_pb in pb.tr:
+        spawned = []
+        for s in tr_pb.spawned_tasks:
+            spawned.append(taskdict_from_pb(s))
+        published = []
+        for p in tr_pb.published_refs:
+            published.append(reference_from_pb(p))
+        profiling = {'STARTED' : tr_pb.profiling.started,
+                     'FINISHED' : tr_pb.profiling.finished,
+                     'CREATED' : tr_pb.profiling.created,
+                     'FETCHED' : {}}
+        for location in tr_pb.profiling.fetched:
+            profiling['FETCHED'][location.hostname] = location.duration
+        report_data.append((tr_pb.task_id, tr_pb.success, (spawned, published, profiling)))
+    return report_data
+
 class RecvThread:
     def __init__(self, worker, job_pool):
         self.thread = threading.Thread(target=self.main_loop)
@@ -107,24 +141,22 @@ class RecvThread:
     def main_loop(self):
          while True:
              num = self.recv_n(4)
-             num = struct.unpack("i", num)[0]
+             num = struct.unpack("!I", num)[0]
              data = self.recv_n(num)
-             job_id = data[:data.find('!')]
-             task_id = data[data.find('!')+1:data.find('@')]
-             data = data[data.find('@')+1:]
+             report = task_pb2.Report()
+             report.ParseFromString(data)
              try:
-                 job = self.job_pool.get_job_by_id(job_id)
+                 job = self.job_pool.get_job_by_id(report.job_id)
              except KeyError:
-                 ciel.log('No such job: %s' % job_id, 'MASTER', logging.ERROR)
+                 ciel.log('No such job: %s' % report.job_id, 'MASTER', logging.ERROR)
                  raise HTTPError(404)
              try:
-                 task = job.task_graph.get_task(task_id)
+                 task = job.task_graph.get_task(report.task_id)
              except KeyError:
-                 ciel.log('No such task: %s in job: %s' % (task_id, job_id), 'MASTER', logging.ERROR)
+                 ciel.log('No such task: %s in job: %s' % (report.task_id, report.job_id), 'MASTER', logging.ERROR)
                  raise HTTPError(404)
-             report_payload = simplejson.loads(data, object_hook=json_decode_object_hook)
-             report = report_payload['report']
-             job.report_tasks(report, task, self.worker)
+             report_payload = report_from_pb(report)
+             job.report_tasks(report_payload, task, self.worker)
 
         
 class WorkerPool:
@@ -182,9 +214,16 @@ class WorkerPool:
                 pass
             self.netlocs[worker.netloc] = worker
             #print "worker ", worker.netloc
-            worker.conn = socket.create_connection((worker.netloc.split(":")[0], 8139))
-            worker.conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
-            RecvThread(worker, self.job_pool).start()
+            while True:
+                try:
+                    print "try create connection", worker.netloc
+                    worker.conn = socket.create_connection((worker.netloc.split(":")[0], 8139))
+                    worker.conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+                    RecvThread(worker, self.job_pool).start()
+                    break
+                except Exception as e:
+                    print e
+            print "created connection"
             self.idle_set.add(id)
             self.event_count += 1
             self.event_condvar.notify_all()
@@ -244,9 +283,17 @@ class WorkerPool:
             #print "sending yobits"
             #worker.conn.write("yobits")
             #print "task", task.as_descriptor()
-            message = simplejson.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
+            #message = simplejson.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
+            #d = task.as_descriptor()
+            #for k in d:
+            #print k, d[k]
+            #print len(task.as_protobuf()), len(message)
             #message = cPickle.dumps(task.as_descriptor())
-            worker.conn.sendall(struct.pack("i", len(message)) + message)
+            pb = task_pb2.Task()
+            print pb
+            task.fill_protobuf(pb)
+            message = pb.SerializeToString()
+            worker.conn.sendall(struct.pack("!I", len(message)) + message)
             #print "about to dump task"
             #cPickle.dump(task.as_descriptor(), worker.conn)
             #worker.conn.flush()

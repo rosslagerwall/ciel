@@ -19,10 +19,34 @@ import logging
 import socket
 import cPickle
 from ciel.public.references import json_decode_object_hook,\
-    SWReferenceJSONEncoder
+    SWReferenceJSONEncoder, reference_from_pb
 import simplejson
 import struct
 import select
+from ciel.runtime import task_pb2
+
+def task_descriptor_from_pb(pb):
+    descriptor = {'task_id': pb.task_id,
+                  'handler': pb.handler,
+                  'event_index': pb.event_index,
+                  'job' : pb.job}
+    if pb.HasField('parent'):
+        descriptor['parent'] = pb.parent
+    if pb.HasField('scheduling_class'):
+        descriptor['scheduling_class'] = pb.scheduling_class
+    if pb.HasField('type'):
+        descriptor['type'] = pb.type
+    if pb.HasField('task_private'):
+        descriptor['task_private'] = reference_from_pb(pb.task_private)
+    descriptor['expected_outputs'] = []
+    descriptor['expected_outputs'].extend(pb.expected_outputs)
+    descriptor['inputs'] = []
+    for i in pb.inputs:
+        descriptor['inputs'].append(reference_from_pb(i))
+    descriptor['dependencies'] = []
+    for d in pb.dependencies:
+        descriptor['dependencies'].append(reference_from_pb(d))
+    return descriptor
 
 class TaskReceiverThread:
 
@@ -62,6 +86,7 @@ class TaskReceiverThread:
          self.listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
          self.listen.bind(('', 8139))
          self.listen.listen(1)
+         print "about to accept"
          self.conn, self.addr = self.listen.accept()
          self.worker.conn = self.conn
          while True:
@@ -69,13 +94,16 @@ class TaskReceiverThread:
              num = self.recv_n(4)
              if num is None:
                  break
-             num = struct.unpack("i", num)[0]
+             num = struct.unpack("!I", num)[0]
              data = self.recv_n(num)
              if data is None:
                  break
-             task_descriptor = simplejson.loads(data, object_hook=json_decode_object_hook)
+             #task_descriptor = simplejson.loads(data, object_hook=json_decode_object_hook)
              #task_descriptor = cPickle.loads(data)
              #print "loaded task"
+             task_descriptor = task_pb2.Task()
+             task_descriptor.ParseFromString(data)
+             task_descriptor = task_descriptor_from_pb(task_descriptor)
              self.worker.multiworker.create_and_queue_taskset(task_descriptor)
              #print "started task"
 
