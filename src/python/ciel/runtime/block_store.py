@@ -138,9 +138,7 @@ class BlockStore:
             if e.errno == 17: # File exists
                 size_old = os.path.getsize(old_name)
                 size_new = os.path.getsize(new_name)
-                if size_old == size_new:
-                    ciel.log('Produced/retrieved %s matching existing file (size %d): ignoring' % (new_name, size_new), 'BLOCKSTORE', logging.WARNING)
-                else:
+                if size_old != size_new:
                     ciel.log('Produced/retrieved %s with size not matching existing block (old: %d, new %d)' % (new_name, size_old, size_new), 'BLOCKSTORE', logging.ERROR)
                     raise
             else:
