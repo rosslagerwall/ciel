@@ -27,6 +27,7 @@ import cPickle
 import struct
 from ciel.public.references import json_decode_object_hook,\
     SWReferenceJSONEncoder
+from ciel.public.io_helpers import read_framed_json, write_framed_json
 
 class FeatureQueues:
     def __init__(self):
@@ -95,20 +96,9 @@ class RecvThread:
     def start(self):
         self.thread.start()
 
-    def recv_n(self, n):
-        while len(self.data) < n:
-            bit = self.worker.conn.recv(4096)
-            #print "recvd", bit, len(bit)
-            self.data += bit
-        data = self.data[:n]
-        self.data = self.data[n:]
-        return data
-
     def main_loop(self):
          while True:
-             num = self.recv_n(4)
-             num = struct.unpack("i", num)[0]
-             data = self.recv_n(num)
+             data = read_framed_json(self.worker.connfp)
              job_id = data[:data.find('!')]
              task_id = data[data.find('!')+1:data.find('@')]
              data = data[data.find('@')+1:]
@@ -184,6 +174,7 @@ class WorkerPool:
             #print "worker ", worker.netloc
             worker.conn = socket.create_connection((worker.netloc.split(":")[0], 8139))
             worker.conn.setsockopt(socket.IPPROTO_TCP, socket.TCP_NODELAY, 1)
+            worker.connfp = worker.conn.makefile()
             RecvThread(worker, self.job_pool).start()
             self.idle_set.add(id)
             self.event_count += 1
@@ -246,7 +237,7 @@ class WorkerPool:
             #print "task", task.as_descriptor()
             message = simplejson.dumps(task.as_descriptor(), cls=SWReferenceJSONEncoder)
             #message = cPickle.dumps(task.as_descriptor())
-            worker.conn.sendall(struct.pack("i", len(message)) + message)
+            write_framed_json(message, worker.connfp)
             #print "about to dump task"
             #cPickle.dump(task.as_descriptor(), worker.conn)
             #worker.conn.flush()

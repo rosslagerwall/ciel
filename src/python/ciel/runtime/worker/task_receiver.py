@@ -23,6 +23,7 @@ from ciel.public.references import json_decode_object_hook,\
 import simplejson
 import struct
 import select
+from ciel.public.io_helpers import read_framed_json
 
 class TaskReceiverThread:
 
@@ -43,20 +44,6 @@ class TaskReceiverThread:
         self.bus.subscribe('start', self.start, 75)
         self.bus.subscribe('stop', self.stop, 10)
 
-    def recv_n(self, n):
-        while len(self.data) < n:
-            events = select.select([self.control_pipe[0], self.conn], [], [])
-            #print rlist, self.conn, self.conn in rlist
-            if self.conn in events[0]:
-                bit = self.conn.recv(4096)
-                #print "recvd", bit, len(bit)
-                self.data += bit
-            if self.control_pipe[0] in events[0]:
-                return None
-        data = self.data[:n]
-        self.data = self.data[n:]
-        return data
-
     def main_loop(self):
          self.listen = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
          self.listen.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -64,13 +51,11 @@ class TaskReceiverThread:
          self.listen.listen(1)
          self.conn, self.addr = self.listen.accept()
          self.worker.conn = self.conn
+         fp = self.conn.makefile()
+         self.worker.connfp = fp
          while True:
              #print "about to load task"
-             num = self.recv_n(4)
-             if num is None:
-                 break
-             num = struct.unpack("i", num)[0]
-             data = self.recv_n(num)
+             data = read_framed_json(fp)
              if data is None:
                  break
              task_descriptor = simplejson.loads(data, object_hook=json_decode_object_hook)
