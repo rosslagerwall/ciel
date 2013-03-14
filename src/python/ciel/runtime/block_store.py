@@ -145,7 +145,7 @@ class BlockStore:
                 raise
 
     def commit_producer(self, id):
-        ciel.log.error('Committing file for output %s' % id, 'BLOCKSTORE', logging.DEBUG)
+        #ciel.log.error('Committing file for output %s' % id, 'BLOCKSTORE', logging.DEBUG)
         self.commit_file(self.producer_filename(id), self.filename(id))
         
     def choose_best_netloc(self, netlocs):
@@ -165,7 +165,7 @@ class BlockStore:
             return random.choice(urls)
 
     def check_local_blocks(self):
-        ciel.log("Looking for local blocks", "BLOCKSTORE", logging.DEBUG)
+        #ciel.log("Looking for local blocks", "BLOCKSTORE", logging.DEBUG)
         try:
             for block_name in os.listdir(self.base_dir):
                 if block_name.startswith('.fetch:'):
@@ -187,13 +187,13 @@ class BlockStore:
                 yield block_name, block_size
     
     def build_pin_set(self):
-        ciel.log.error('Building pin set', 'BLOCKSTORE', logging.DEBUG)
+        #ciel.log.error('Building pin set', 'BLOCKSTORE', logging.DEBUG)
         initial_size = len(self.pin_set)
         for filename in os.listdir(self.base_dir):
             if filename.startswith(PIN_PREFIX):
                 self.pin_set.add(filename[len(PIN_PREFIX):])
                 ciel.log.error('Pinning block %s' % filename[len(PIN_PREFIX):], 'BLOCKSTORE', logging.DEBUG)
-        ciel.log.error('Pinned %d new blocks' % (len(self.pin_set) - initial_size), 'BLOCKSTORE', logging.DEBUG)
+        #ciel.log.error('Pinned %d new blocks' % (len(self.pin_set) - initial_size), 'BLOCKSTORE', logging.DEBUG)
     
     def generate_block_list_file(self):
         ciel.log.error('Generating block list file', 'BLOCKSTORE', logging.DEBUG)

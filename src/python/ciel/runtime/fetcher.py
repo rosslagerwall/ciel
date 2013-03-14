@@ -424,7 +424,7 @@ def sync_retrieve_refs(refs, task_record, accept_string=False):
     
     for ref in refs:
         sync_transfer = SynchronousTransfer(ref, task_record)
-        ciel.log("Synchronous fetch ref %s" % ref.id, "BLOCKSTORE", logging.DEBUG)
+        #ciel.log("Synchronous fetch ref %s" % ref.id, "BLOCKSTORE", logging.DEBUG)
         if accept_string:
             kwargs = {"string_callback": sync_transfer.return_string}
         else:

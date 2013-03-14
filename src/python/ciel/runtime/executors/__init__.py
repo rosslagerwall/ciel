@@ -201,8 +201,8 @@ class ContextManager:
     def __exit__(self, exnt, exnv, exnbt):
         if exnt is not None:
             ciel.log("Context manager for %s exiting with exception %s" % (self.description, repr(exnv)), "EXEC", logging.WARNING)
-        else:
-            ciel.log("Context manager for %s exiting cleanly" % self.description, "EXEC", logging.DEBUG)
+        #else:
+            #ciel.log("Context manager for %s exiting cleanly" % self.description, "EXEC", logging.DEBUG)
         for ctx in self.active_contexts:
             ctx.__exit__(exnt, exnv, exnbt)
         return False

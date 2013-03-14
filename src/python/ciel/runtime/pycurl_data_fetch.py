@@ -67,7 +67,7 @@ class FileTransferContext:
 
     def start_next_attempt(self):
         self.fp = open(self.callbacks.bs_ctx.filename, "w")
-        ciel.log("Starting fetch attempt %d using %s" % (self.failures + 1, self.urls[self.failures]), "CURL_FETCH", logging.DEBUG)
+        #ciel.log("Starting fetch attempt %d using %s" % (self.failures + 1, self.urls[self.failures]), "CURL_FETCH", logging.DEBUG)
         self.curl_fetch = pycURLFetchContext(self.fp, self.urls[self.failures], self.result, self.callbacks.progress, fetch_client=self.fetch_client)
         self.curl_fetch.start()
 

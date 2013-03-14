@@ -175,7 +175,7 @@ class TaskExecutionRecord:
         
     def run(self):
         ciel.engine.publish("worker_event", "Start execution " + repr(self.task_descriptor['task_id']) + " with handler " + self.task_descriptor['handler'])
-        ciel.log.error("Starting task %s with handler %s" % (str(self.task_descriptor['task_id']), self.task_descriptor['handler']), 'TASK', logging.DEBUG, False)
+        #ciel.log.error("Starting task %s with handler %s" % (str(self.task_descriptor['task_id']), self.task_descriptor['handler']), 'TASK', logging.DEBUG, False)
         try:
             self.start_time = datetime.datetime.now()
             
@@ -199,7 +199,7 @@ class TaskExecutionRecord:
             self.success = not self.failed
             
             ciel.engine.publish("worker_event", "Completed execution " + repr(self.task_descriptor['task_id']))
-            ciel.log.error("Completed task %s with handler %s" % (str(self.task_descriptor['task_id']), self.task_descriptor['handler']), 'TASK', logging.DEBUG, False)
+            #ciel.log.error("Completed task %s with handler %s" % (str(self.task_descriptor['task_id']), self.task_descriptor['handler']), 'TASK', logging.DEBUG, False)
         except MissingInputException as mie:
             ciel.log.error('Missing input in task %s with handler %s' % (str(self.task_descriptor['task_id']), self.task_descriptor['handler']), 'TASKEXEC', logging.ERROR, True)
             self.failure_bindings = mie.bindings

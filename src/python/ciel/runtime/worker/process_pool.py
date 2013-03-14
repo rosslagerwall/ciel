@@ -123,7 +123,7 @@ class ProcessPool:
         
     def soft_cache_process(self, proc_rec, exec_cls, soft_cache_keys):
         with self.lock:
-            ciel.log("Caching process %s" % proc_rec.id, "PROCESSPOOL", logging.DEBUG)
+            #ciel.log("Caching process %s" % proc_rec.id, "PROCESSPOOL", logging.DEBUG)
             exec_cls.process_cache.add(proc_rec)
             proc_rec.is_free = True
             proc_rec.last_used_time = datetime.now()
@@ -136,20 +136,20 @@ class ProcessPool:
             return None
         with self.lock:
             best_proc = None
-            ciel.log("Looking to re-use a process for class %s" % exec_cls.handler_name, "PROCESSPOOL", logging.DEBUG)
+            #ciel.log("Looking to re-use a process for class %s" % exec_cls.handler_name, "PROCESSPOOL", logging.DEBUG)
             for proc in exec_cls.process_cache:
                 hits = 0
                 for ref in dependencies:
                     if ref.id in proc.soft_cache_refs:
                         hits += 1
-                ciel.log("Process %s: has %d/%d cached" % (proc.id, hits, len(dependencies)), "PROCESSPOOL", logging.DEBUG)
+                #ciel.log("Process %s: has %d/%d cached" % (proc.id, hits, len(dependencies)), "PROCESSPOOL", logging.DEBUG)
                 if best_proc is None or best_proc[1] < hits:
                     best_proc = (proc, hits)
             if best_proc is None:
                 return None
             else:
                 proc = best_proc[0]
-                ciel.log("Re-using process %s" % proc.id, "PROCESSPOOL", logging.DEBUG)
+                #ciel.log("Re-using process %s" % proc.id, "PROCESSPOOL", logging.DEBUG)
                 exec_cls.process_cache.remove(proc)
                 proc.is_free = False
                 return proc

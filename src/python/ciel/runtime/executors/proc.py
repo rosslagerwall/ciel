@@ -245,9 +245,9 @@ class ProcExecutor(BaseExecutor):
         
     def publish_fetched_ref(self, fetch):
         completed_ref = fetch.get_completed_ref()
-        if completed_ref is None:
-            ciel.log("Cancelling async fetch %s (chunk %d)" % (fetch.ref.id, fetch.chunk_size), "EXEC", logging.DEBUG)
-        else:
+        if completed_ref is not None:
+            #ciel.log("Cancelling async fetch %s (chunk %d)" % (fetch.ref.id, fetch.chunk_size), "EXEC", logging.DEBUG)
+            #else:
             if fetch.make_sweetheart:
                 completed_ref = SW2_SweetheartReference.from_concrete(completed_ref, get_own_netloc())
             self.task_record.publish_ref(completed_ref)
@@ -256,7 +256,7 @@ class ProcExecutor(BaseExecutor):
     def open_ref_async(self, ref, chunk_size, sole_consumer=False, make_sweetheart=False, must_block=False, fd_socket_name=None):
         if not sendmsg_enabled:
             fd_socket_name = None
-            ciel.log("Not using FDs directly: module 'sendmsg' not available", "EXEC", logging.DEBUG)
+            #ciel.log("Not using FDs directly: module 'sendmsg' not available", "EXEC", logging.DEBUG)
         real_ref = self.task_record.retrieve_ref(ref)
 
         new_fetch = OngoingFetch(real_ref, chunk_size, self.task_record, sole_consumer, make_sweetheart, must_block, can_accept_fd=(fd_socket_name is not None))
@@ -280,7 +280,7 @@ class ProcExecutor(BaseExecutor):
         # Definitions here: "done" means we're already certain that the producer has completed successfully.
         # "blocking" means that EOF, as and when it arrives, means what it says. i.e. it's a regular file and done, or a pipe-like thing.
         ret.update({"done": new_fetch.done, "size": new_fetch.bytes})
-        ciel.log("Async fetch %s (chunk %d): initial status %d bytes, done=%s, blocking=%s, sending_fd=%s" % (real_ref, chunk_size, ret["size"], ret["done"], ret["blocking"], ret["sending_fd"]), "EXEC", logging.DEBUG)
+        #ciel.log("Async fetch %s (chunk %d): initial status %d bytes, done=%s, blocking=%s, sending_fd=%s" % (real_ref, chunk_size, ret["size"], ret["done"], ret["blocking"], ret["sending_fd"]), "EXEC", logging.DEBUG)
 
         # XXX: adding this because the OngoingFetch isn't publishing the sweetheart correctly.        
         if make_sweetheart:
@@ -360,7 +360,7 @@ class ProcExecutor(BaseExecutor):
         if index in self.ongoing_outputs:
             raise Exception("Tried to open output %d which was already open" % index)
         if not sendmsg_enabled:
-            ciel.log("Not using FDs directly: module 'sendmsg' not available", "EXEC", logging.DEBUG)
+            #ciel.log("Not using FDs directly: module 'sendmsg' not available", "EXEC", logging.DEBUG)
             fd_socket_name = None
         output_name = self.expected_outputs[index]
         can_accept_fd = (fd_socket_name is not None)

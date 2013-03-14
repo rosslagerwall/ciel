@@ -93,12 +93,12 @@ class WorkerJob:
             
     def task_started(self):
         self.running_tasks += 1
-        ciel.log('Job %s started a task (now running %d)' % (self.id, self.running_tasks), 'JOB', logging.DEBUG)
+        #ciel.log('Job %s started a task (now running %d)' % (self.id, self.running_tasks), 'JOB', logging.DEBUG)
         
     def task_finished(self, task, time):
         self.running_tasks -= 1
         self.task_cost = EWMA_ALPHA * time + (1 - EWMA_ALPHA) * self.task_cost
-        ciel.log('Job %s finished a task (now running %d, task cost now %f)' % (self.id, self.running_tasks, self.task_cost), 'JOB', logging.DEBUG)
+        #ciel.log('Job %s finished a task (now running %d, task cost now %f)' % (self.id, self.running_tasks, self.task_cost), 'JOB', logging.DEBUG)
 
 class MultiWorker:
     """FKA JobManager."""
@@ -200,7 +200,7 @@ class MultiWorkerTaskSetExecutionRecord:
             self.notify_completed()
 
     def start(self):
-        ciel.log.error('Starting taskset with %s' % self.initial_td['task_id'], 'TASKEXEC', logging.DEBUG)
+        #ciel.log.error('Starting taskset with %s' % self.initial_td['task_id'], 'TASKEXEC', logging.DEBUG)
         self.job.taskset_activated(self)
         
         self.task_graph.add_root_task_id(self.initial_td['task_id'])
@@ -214,7 +214,7 @@ class MultiWorkerTaskSetExecutionRecord:
 
     def notify_completed(self):
         """Called by LocalJobOutput.notify_ref_table_updated() when the taskset is complete."""
-        ciel.log.error('Taskset complete', 'TASKEXEC', logging.DEBUG)
+        #ciel.log.error('Taskset complete', 'TASKEXEC', logging.DEBUG)
 
         # Release this task set, which may allow the JobManager to delete the job.
         self.job_manager.taskset_completed(self)
