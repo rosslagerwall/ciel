@@ -327,6 +327,16 @@ class ProcExecutor(BaseExecutor):
     def spawn(self, request_args):
         """Spawns a child task. Arguments define a task_private structure. Returns a list
         of future references."""
+
+        # If process sends a write_ref, it means that we need to close the ref
+        # to generate the correct object_ref.
+        if 'write_ref' in request_args:
+            if request_args['write_ref']['size'] == -1:
+                res = self.close_output(request_args['write_ref']['index'])
+            else:
+                res = self.close_output(request_args['write_ref']['index'], request_args['write_ref']['size'])
+            request_args['object_ref'] = res['ref']
+            del request_args['write_ref']
         
         # Args dict arrives from sw with unicode keys :(
         str_args = dict([(str(k), v) for (k, v) in request_args.items()])
@@ -342,6 +352,12 @@ class ProcExecutor(BaseExecutor):
             request_args["process_record_id"] = self.process_record.id
         request_args["delegated_outputs"] = self.task_descriptor["expected_outputs"]
         self.spawn(request_args)
+
+    def allocate_open(self, prefix=""):
+        res = self.allocate_output(prefix)
+        res2 = self.open_output(res['index'])
+        res['filename'] = res2[0]['filename']
+        return res
     
     def allocate_output(self, prefix=""):
         new_output_name = self.task_record.create_published_output_name(prefix)
@@ -462,6 +478,10 @@ class ProcExecutor(BaseExecutor):
                     
                     response = self.tail_spawn(args)
                     
+                elif method == 'allocate_open':
+
+                    response = self.allocate_open(args)
+
                 elif method == 'allocate_output':
                     
                     response = self.allocate_output(**args)
