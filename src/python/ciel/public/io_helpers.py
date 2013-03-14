@@ -47,14 +47,17 @@ class MaybeFile:
             self.str = self.fake_fp.getvalue()
             self.fake_fp.close()
             
+
+length_struct = struct.Struct('!I')
+
 def write_framed_json(obj, fp):
     json_string = simplejson.dumps(obj, cls=SWReferenceJSONEncoder)
-    fp.write(struct.pack('!I', len(json_string)))
+    fp.write(length_struct.pack(len(json_string)))
     fp.write(json_string)
     fp.flush()
     
 def read_framed_json(fp):
-    request_len, = struct.unpack_from('!I', fp.read(4))
+    request_len, = length_struct.unpack(fp.read(4))
     request_string = fp.read(request_len)
     return simplejson.loads(request_string, object_hook=json_decode_object_hook)
 
