@@ -477,6 +477,11 @@ class ProcExecutor(BaseExecutor):
                 elif method == 'tail_spawn':
                     
                     response = self.tail_spawn(args)
+
+                elif method == 'tail_spawn_exit':
+
+                    self.tail_spawn(args)
+                    return PROC_MUST_KEEP
                     
                 elif method == 'allocate_open':
 
